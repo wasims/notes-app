@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="My Notes" />
+<meta name="theme-color" content="#1a1a1a" />
+<link rel="manifest" href="manifest.json" />
+<title>My Notes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #faf9f6;
+    --surface: #f3f1ec;
+    --border: #e0ddd5;
+    --text: #1a1a1a;
+    --muted: #7a7872;
+    --accent: #2d4a3e;
+    --accent-light: #e8f0ec;
+    --danger: #8b2e2e;
+    --danger-light: #f5e8e8;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --font-serif: 'DM Serif Display', Georgia, serif;
+    --font-sans: 'DM Sans', system-ui, sans-serif;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141412;
+      --surface: #1e1d1a;
+      --border: #2e2d29;
+      --text: #f0ede6;
+      --muted: #7a7872;
+      --accent: #7eb69a;
+      --accent-light: #1e2e28;
+      --danger: #c47070;
+      --danger-light: #2a1e1e;
+    }
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px 10px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .header-title {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+  .header-actions { display: flex; gap: 8px; }
+  .icon-btn {
+    width: 34px; height: 34px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s;
+  }
+  .icon-btn:active { background: var(--border); }
+
+  /* ── Tab bar ── */
+  .tab-bar {
+    display: flex;
+    padding: 8px 18px;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .tab {
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--muted);
+    background: transparent;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
+  }
+  .tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* ── Panels ── */
+  .panel { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .panel.hidden { display: none; }
+
+  /* ── Notes list ── */
+  .notes-container { padding: 8px 18px 24px; }
+  .note-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.15s;
+  }
+  .note-card:active { border-color: var(--accent); }
+  .note-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .note-card-title { font-weight: 500; font-size: 15px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .note-card-date { font-size: 11px; color: var(--muted); flex-shrink: 0; margin-top: 2px; }
+  .note-card-preview { font-size: 13px; color: var(--muted); margin-top: 4px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .note-card-del {
+    width: 26px; height: 26px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--danger);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .note-card-del:active { background: var(--danger-light); }
+  .empty-state { text-align: center; padding: 60px 24px; color: var(--muted); }
+  .empty-state-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-state-text { font-size: 15px; }
+
+  /* ── Editor ── */
+  .editor-panel { display: flex; flex-direction: column; height: 100%; }
+  .editor-panel.hidden { display: none; }
+
+  .note-title-input {
+    width: 100%;
+    font-family: var(--font-serif);
+    font-size: 20px;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    padding: 12px 18px;
+    outline: none;
+    flex-shrink: 0;
+  }
+  .note-title-input::placeholder { color: var(--muted); }
+
+  /* ── Toolbar ── */
+  .toolbar-wrap {
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .toolbar-wrap::-webkit-scrollbar { display: none; }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 10px;
+    width: max-content;
+    min-width: 100%;
+  }
+  .tb {
+    min-width: 32px; height: 30px;
+    padding: 0 6px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.12s;
+    white-space: nowrap;
+  }
+  .tb:active, .tb.on { background: var(--accent-light); border-color: var(--border); color: var(--accent); }
+  .tb-sep { width: 1px; height: 20px; background: var(--border); margin: 0 3px; flex-shrink: 0; }
+  .tb select {
+    height: 28px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    padding: 0 4px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+  }
+  .color-wrap { position: relative; display: flex; align-items: center; }
+  .color-label { font-size: 12px; font-weight: 500; }
+  .color-dot {
+    width: 10px; height: 4px;
+    border-radius: 2px;
+    margin-top: 1px;
+    pointer-events: none;
+  }
+  .color-input {
+    position: absolute; inset: 0;
+    opacity: 0;
+    width: 100%; height: 100%;
+    cursor: pointer;
+  }
+
+  /* ── Writing area ── */
+  .editor-area {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 14px 18px 24px;
+    outline: none;
+    font-size: 15px;
+    line-height: 1.75;
+    color: var(--text);
+    min-height: 0;
+  }
+  .editor-area:empty:before {
+    content: attr(data-placeholder);
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .editor-area b, .editor-area strong { font-weight: 500; }
+
+  /* ── Bottom bar ── */
+  .bottom-bar {
+    display: flex;
+    gap: 8px;
+    padding: 10px 18px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .btn {
+    flex: 1;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s;
+  }
+  .btn:active { background: var(--border); }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn.primary:active { opacity: 0.85; }
+
+  .save-status {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    padding: 0 18px 6px;
+    flex-shrink: 0;
+    min-height: 18px;
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: absolute;
+    bottom: calc(80px + var(--safe-bottom));
+    left: 50%; transform: translateX(-50%);
+    background: var(--text);
+    color: var(--bg);
+    font-size: 13px;
+    padding: 8px 18px;
+    border-radius: 20px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 100;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- List view header -->
+  <div class="header" id="list-header">
+    <span class="header-title">My Notes</span>
+    <div class="header-actions">
+      <div class="icon-btn" onclick="newNote()" title="New note">+</div>
+    </div>
+  </div>
+
+  <!-- Editor view header -->
+  <div class="header hidden" id="editor-header">
+    <div class="icon-btn" onclick="backToList()" title="Back">&#8592;</div>
+    <span class="header-title" style="font-size:17px;">Edit note</span>
+    <div class="icon-btn" onclick="saveAndBack()" style="background:var(--accent);border-color:var(--accent);color:#fff;" title="Save">&#10003;</div>
+  </div>
+
+  <!-- Tab bar (list view only) -->
+  <div class="tab-bar" id="tab-bar">
+    <div class="tab active" id="tab-all" onclick="filterNotes('all')">All</div>
+    <div class="tab" id="tab-today" onclick="filterNotes('today')">Today</div>
+  </div>
+
+  <!-- Notes list panel -->
+  <div class="panel" id="panel-list">
+    <div class="notes-container" id="notes-container"></div>
+  </div>
+
+  <!-- Editor panel -->
+  <div class="editor-panel hidden" id="panel-editor">
+    <input class="note-title-input" id="note-title" placeholder="Note title…" />
+
+    <div class="toolbar-wrap">
+      <div class="toolbar">
+        <select id="sel-font" onchange="applyFont(this.value)">
+          <option value="inherit">Default</option>
+          <option value="'DM Serif Display',serif">Serif</option>
+          <option value="'Courier New',monospace">Mono</option>
+          <option value="Georgia,serif">Georgia</option>
+          <option value="Arial,sans-serif">Arial</option>
+        </select>
+        <select id="sel-size" onchange="applySize(this.value)" style="margin-left:4px;">
+          <option value="3">Normal</option>
+          <option value="1">Small</option>
+          <option value="4">Large</option>
+          <option value="5">Larger</option>
+          <option value="6">Heading</option>
+        </select>
+        <div class="tb-sep"></div>
+        <div class="tb" id="tb-bold" onmousedown="fmtDown(event,'bold')"><b>B</b></div>
+        <div class="tb" id="tb-italic" onmousedown="fmtDown(event,'italic')"><i>I</i></div>
+        <div class="tb" id="tb-underline" onmousedown="fmtDown(event,'underline')" style="text-decoration:underline;">U</div>
+        <div class="tb" id="tb-strike" onmousedown="fmtDown(event,'strikeThrough')" style="text-decoration:line-through;">S</div>
+        <div class="tb-sep"></div>
+        <div class="tb" onmousedown="fmtDown(event,'justifyLeft')" title="Left">&#8676;</div>
+        <div class="tb" onmousedown="fmtDown(event,'justifyCenter')" title="Center">&#8660;</div>
+        <div class="tb" onmousedown="fmtDown(event,'justifyRight')" title="Right">&#8677;</div>
+        <div class="tb-sep"></div>
+        <div class="tb" onmousedown="fmtDown(event,'insertUnorderedList')">&#8226; list</div>
+        <div class="tb" onmousedown="fmtDown(event,'insertOrderedList')">1. list</div>
+        <div class="tb-sep"></div>
+        <div class="tb color-wrap" title="Text colour">
+          <span class="color-label">A</span>
+          <span class="color-dot" id="txt-dot" style="background:#1a1a1a;"></span>
+          <input class="color-input" type="color" id="txt-color" value="#1a1a1a" onchange="applyColor(this.value)" />
+        </div>
+        <div class="tb color-wrap" title="Highlight">
+          <span class="color-label">H</span>
+          <span class="color-dot" id="hi-dot" style="background:#fff176;"></span>
+          <input class="color-input" type="color" id="hi-color" value="#fff176" onchange="applyHighlight(this.value)" />
+        </div>
+        <div class="tb-sep"></div>
+        <div class="tb" onmousedown="fmtDown(event,'undo')">&#8630;</div>
+        <div class="tb" onmousedown="fmtDown(event,'redo')">&#8631;</div>
+        <div class="tb-sep"></div>
+        <div class="tb" onmousedown="clearFmt(event)" style="font-size:11px;">clear</div>
+      </div>
+    </div>
+
+    <div class="editor-area" id="editor" contenteditable="true"
+         data-placeholder="Start writing…"
+         oninput="onEdit()"
+         onkeyup="updateTb()"
+         onmouseup="updateTb()"
+         ontouchend="updateTb()">
+    </div>
+
+    <div class="save-status" id="save-status"></div>
+
+    <div class="bottom-bar">
+      <button class="btn" onclick="clearEditor()">Clear</button>
+      <button class="btn primary" onclick="saveAndBack()">Save note</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+  let notes = JSON.parse(localStorage.getItem('mn_notes') || '[]');
+  let editingId = null;
+  let filter = 'all';
+  let autoTimer;
+
+  function saveStore() {
+    localStorage.setItem('mn_notes', JSON.stringify(notes));
+  }
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  function renderNotes() {
+    const container = document.getElementById('notes-container');
+    const today = new Date().toDateString();
+    const filtered = filter === 'today'
+      ? notes.filter(n => new Date(n.ts).toDateString() === today)
+      : notes;
+
+    if (filtered.length === 0) {
+      container.innerHTML = `<div class="empty-state">
+        <div class="empty-state-icon">&#9998;</div>
+        <div class="empty-state-text">${filter === 'today' ? 'No notes today yet.' : 'No notes yet. Tap + to begin.'}</div>
+      </div>`;
+      return;
+    }
+
+    container.innerHTML = filtered.map(n => {
+      const plain = n.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const preview = plain.slice(0, 100);
+      const d = new Date(n.ts);
+      const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+      return `<div class="note-card" onclick="openNote('${n.id}')">
+        <div class="note-card-header">
+          <div class="note-card-title">${escHtml(n.title || 'Untitled')}</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            <div class="note-card-date">${dateStr}</div>
+            <div class="note-card-del" onclick="event.stopPropagation();deleteNote('${n.id}')">&#10005;</div>
+          </div>
+        </div>
+        ${preview ? `<div class="note-card-preview">${escHtml(preview)}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function filterNotes(f) {
+    filter = f;
+    document.getElementById('tab-all').className = 'tab' + (f==='all'?' active':'');
+    document.getElementById('tab-today').className = 'tab' + (f==='today'?' active':'');
+    renderNotes();
+  }
+
+  function showList() {
+    document.getElementById('list-header').classList.remove('hidden');
+    document.getElementById('editor-header').classList.add('hidden');
+    document.getElementById('tab-bar').style.display = '';
+    document.getElementById('panel-list').classList.remove('hidden');
+    document.getElementById('panel-editor').classList.add('hidden');
+    renderNotes();
+  }
+
+  function showEditor() {
+    document.getElementById('list-header').classList.add('hidden');
+    document.getElementById('editor-header').classList.remove('hidden');
+    document.getElementById('tab-bar').style.display = 'none';
+    document.getElementById('panel-list').classList.add('hidden');
+    document.getElementById('panel-editor').classList.remove('hidden');
+    setTimeout(() => document.getElementById('editor').focus(), 100);
+  }
+
+  function newNote() {
+    editingId = null;
+    document.getElementById('note-title').value = '';
+    document.getElementById('editor').innerHTML = '';
+    document.getElementById('save-status').textContent = '';
+    showEditor();
+  }
+
+  function openNote(id) {
+    const note = notes.find(n => n.id === id);
+    if (!note) return;
+    editingId = id;
+    document.getElementById('note-title').value = note.title || '';
+    document.getElementById('editor').innerHTML = note.content || '';
+    document.getElementById('save-status').textContent = '';
+    showEditor();
+  }
+
+  function backToList() {
+    showList();
+  }
+
+  function saveAndBack() {
+    const title = document.getElementById('note-title').value.trim() || 'Untitled';
+    const content = document.getElementById('editor').innerHTML.trim();
+    if (!content && !title) { showList(); return; }
+    if (editingId) {
+      const note = notes.find(n => n.id === editingId);
+      if (note) { note.title = title; note.content = content; note.ts = Date.now(); }
+    } else {
+      notes.unshift({ id: 'n' + Date.now(), title, content, ts: Date.now() });
+    }
+    saveStore();
+    toast('Note saved');
+    showList();
+  }
+
+  function clearEditor() {
+    document.getElementById('editor').innerHTML = '';
+    document.getElementById('note-title').value = '';
+  }
+
+  function deleteNote(id) {
+    notes = notes.filter(n => n.id !== id);
+    saveStore();
+    renderNotes();
+    toast('Note deleted');
+  }
+
+  function fmtDown(e, cmd) {
+    e.preventDefault();
+    document.getElementById('editor').focus();
+    document.execCommand(cmd, false, null);
+    updateTb();
+  }
+
+  function clearFmt(e) {
+    e.preventDefault();
+    document.getElementById('editor').focus();
+    document.execCommand('removeFormat', false, null);
+  }
+
+  function applyFont(val) {
+    document.getElementById('editor').focus();
+    document.execCommand('fontName', false, val);
+  }
+
+  function applySize(val) {
+    document.getElementById('editor').focus();
+    document.execCommand('fontSize', false, val);
+  }
+
+  function applyColor(val) {
+    document.getElementById('txt-dot').style.background = val;
+    document.getElementById('editor').focus();
+    document.execCommand('foreColor', false, val);
+  }
+
+  function applyHighlight(val) {
+    document.getElementById('hi-dot').style.background = val;
+    document.getElementById('editor').focus();
+    document.execCommand('hiliteColor', false, val);
+  }
+
+  function updateTb() {
+    ['bold','italic','underline'].forEach(cmd => {
+      const el = document.getElementById('tb-' + cmd);
+      if (el) el.classList.toggle('on', document.queryCommandState(cmd));
+    });
+    const el = document.getElementById('tb-strike');
+    if (el) el.classList.toggle('on', document.queryCommandState('strikeThrough'));
+  }
+
+  function onEdit() {
+    clearTimeout(autoTimer);
+    document.getElementById('save-status').textContent = '';
+    autoTimer = setTimeout(() => {
+      document.getElementById('save-status').textContent = 'Draft auto-saved';
+      setTimeout(() => document.getElementById('save-status').textContent = '', 2000);
+    }, 2000);
+  }
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+
+  showList();
+</script>
+</body>
+</html>
